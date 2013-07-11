@@ -342,7 +342,7 @@ class zpGitHub {
 	static function zpgithub_macro($macros) {
 		$macros['GITHUBREPOS'] = array(
 					'class'=>'function',
-					'params'=> array('string','array*','bool*','bool*'), 
+					'params'=> array('string',,'bool*','bool*','array*'), 
 					'value'=>'getGitHub_repos',
 					'owner'=>'zpgithub',
 					'desc'=>gettext('The GitHub user to print the repos in a nested html list from the user (%1). Optionally array of the names of repos to exclude from the list (%2), show tagged release downloads (%3) and the branches (%4).')
@@ -388,12 +388,12 @@ class zpGitHub {
  /*
 	* Get the repo info as a nested html list to print via macro
 	* @param string $user GitHub user name
-	* @param array $exclude array of repo names to exclude
 	* @param bool $showtags True or false to show links to the tagged releases
 	* @param bool $showbranches True or false to show links the branches
+	* @param array $exclude array of repo names to exclude
 	* return string
 	*/
-	function getGitHub_repos($user,$exclude,$showtags,$showbranches) {
+	function getGitHub_repos($user,$showtags,$showbranches,$exclude) {
 		$obj = new zpGitHub($user);	
 		$repos = $obj->getRepos();
 		$html = $obj->getReposListHTML($repos,$exclude);
@@ -403,8 +403,9 @@ class zpGitHub {
 	 /*
 	* Get the repo info as a nested html list to print via macro
 	* @param string $user GitHub user name
-	* @param array $exclude array of repo names to exclude
-	* @param array $repo name of the repo to get
+	* @param string $repo name of the repo to get
+	* @param bool $showtags True or false to show links to the tagged releases
+	* @param bool $showbranches True or false to show links the branches
 	* return string
 	*/
 	function getGitHub_repo($user,$repo,$showtags,$showbranches) {
