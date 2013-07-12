@@ -4,7 +4,8 @@
  *
  * The plugin caches all request results in the plugin_storgage table to limit http requests to the GitHub server. 
  * To limit db requests it is also a good idea to use the static_html_cache plugin additionally.
- *
+ * Note it is not possible to delete this cache manually currently. 
+ * 
  * Requirements: PHP 5.3+, cURL and JSON PHP server extensions.
  * 
  * Usage:
@@ -33,7 +34,7 @@
  /** clear cache  ********************************************************** */
 /* * ***************************************************************************** */
 /* if (!defined('OFFSET_PATH')) {
-	//define('OFFSET_PATH', -2);
+	define('OFFSET_PATH', 3);
 	require_once(dirname(dirname(__FILE__)) . '/zp-core/admin-functions.php');
 	if (isset($_GET['action'])) {
 		if (sanitize($_GET['action']) == 'clear_zpgithub_cache') {
@@ -87,7 +88,6 @@ class zpGitHub {
 	function __construct($user) {
 		$this->user = $user;
 		$this->today = time();
-		echo "today: ".$this->today;
 		$this->cache_expire = getOption('zpgithub_cache_expire');
 		$lastupdate = query_single_row("SELECT `data` FROM ".prefix('plugin_storage')." WHERE `type` = 'zpgithub' AND `aux` = 'lastupdate_".$this->user."'");
 		if($lastupdate) {
@@ -187,7 +187,7 @@ class zpGitHub {
 		$html = '';
 		if($rawfile) {
 			$html .= '<div class="githubraw-link">'."\n";
-			$html .= '<p><a href="'.$url.'">View file on GitHub</a></p>'."\n";
+			$html .= '<p><a href="'.$url.'" target="_blank">View file on GitHub</a></p>'."\n";
 			$html .= '<pre class="githubraw-code">'."\n";
 			$html .= html_encode($rawfile);
 			$html .= '</pre>'."\n";
@@ -342,7 +342,7 @@ class zpGitHub {
 	static function zpgithub_macro($macros) {
 		$macros['GITHUBREPOS'] = array(
 					'class'=>'function',
-					'params'=> array('string',,'bool*','bool*','array*'), 
+					'params'=> array('string','bool*','bool*','array*'), 
 					'value'=>'getGitHub_repos',
 					'owner'=>'zpgithub',
 					'desc'=>gettext('The GitHub user to print the repos in a nested html list from the user (%1). Optionally array of the names of repos to exclude from the list (%2), show tagged release downloads (%3) and the branches (%4).')
