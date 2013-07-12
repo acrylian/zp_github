@@ -344,21 +344,21 @@ class zpGitHub {
 					'class'=>'function',
 					'params'=> array('string','bool*','bool*','array*'), 
 					'value'=>'getGitHub_repos',
-					'owner'=>'zpgithub',
+					'owner'=>'zp_github',
 					'desc'=>gettext('The GitHub user to print the repos in a nested html list from the user (%1). Optionally array of the names of repos to exclude from the list (%2), show tagged release downloads (%3) and the branches (%4).')
 				);
 				$macros['GITHUBREPO'] = array(
 					'class'=>'function',
 					'params'=> array('string','string','bool*','bool*'), 
 					'value'=>'getGitHub_repo',
-					'owner'=>'zpgithub',
+					'owner'=>'zp_github',
 					'desc'=>gettext('The GitHub user (%1) and the repo name to get (%2). Optionally true/false to show tagged release downloads (%3) and the branches (%4). The macro will print html formatted data of the repo.')
 				);
 		$macros['GITHUBRAW'] = array(
 					'class'=>'function',
 					'params'=> array('string'), 
 					'value'=>'getGitHub_raw',
-					'owner'=>'zpgithub',
+					'owner'=>'zp_github',
 					'desc'=>gettext('Enter the url to a single file page on a GitHub repo (%1) and the macro returns the raw file contents wrappred pre element code and a link to the the single file page.')
 				);
 		return $macros;
