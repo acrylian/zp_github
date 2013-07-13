@@ -2,7 +2,8 @@
 /**
  * A plugin to read and display some info from a user and its repos on GitHub
  *
- * The plugin caches all request results in the plugin_storgage table to limit http requests to the GitHub server. 
+ * The plugin uses unauthorized access so the plugin caches all request results in the plugin_storgage table to 
+ * not exceed the access limit (60 per hour unauthorized) to the GitHub server. Default is update once a day.
  * To limit db requests it is also a good idea to use the static_html_cache plugin additionally.
  * Note it is not possible to delete this cache manually currently. 
  * 
