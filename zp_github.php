@@ -5,7 +5,6 @@
  * The plugin uses unauthorized access so the plugin caches all request results in the plugin_storgage table to 
  * not exceed the access limit (60 per hour unauthorized) to the GitHub server. Default is update once a day.
  * To limit db requests it is also a good idea to use the static_html_cache plugin additionally.
- * Note it is not possible to delete this cache manually currently. 
  * 
  * Requirements: PHP 5.3+, cURL and JSON PHP server extensions.
  * 
@@ -34,8 +33,8 @@
  */
  /** clear cache  ********************************************************** */
 /* * ***************************************************************************** */
-/* if (!defined('OFFSET_PATH')) {
-	define('OFFSET_PATH', 3);
+if (!defined('OFFSET_PATH')) {
+	define('OFFSET_PATH', 1);
 	require_once(dirname(dirname(__FILE__)) . '/zp-core/admin-functions.php');
 	if (isset($_GET['action'])) {
 		if (sanitize($_GET['action']) == 'clear_zpgithub_cache') {
@@ -45,13 +44,13 @@
 				exitZP();
 			}
 			zp_session_start();
-			XSRFdefender('zpgithub');
-			//query("DELETE FROM " . prefix('plugin_storage') . " WHERE `type` = 'zpgithub'");
+			XSRFdefender('zp_github');
+			query("DELETE FROM " . prefix('plugin_storage') . " WHERE `type` = 'zpgithub'");
 			header('Location: ' . FULLWEBPATH . '/' . ZENFOLDER . '/admin.php?action=external&msg=' . gettext('The GitHub db cache has been cleared.'));
 			exitZP();
 		}
 	}
-} */
+} 
 $plugin_is_filter = 9|THEME_PLUGIN|ADMIN_PLUGIN;
 $plugin_description = gettext('A plugin to read some info from a user and its repos on GitHub.');
 $plugin_author = 'Malte Müller (acrylian)';
@@ -59,7 +58,7 @@ $plugin_version = '1.0';
 $option_interface = 'zpgithubOptions';
 
 zp_register_filter('content_macro','zpGitHub::zpgithub_macro');
-//zp_register_filter('admin_utilities_buttons', 'zpGitHub::overviewbutton');
+zp_register_filter('admin_utilities_buttons', 'zpGitHub::overviewbutton');
 
 class zpgithubOptions {
 
@@ -367,18 +366,18 @@ class zpGitHub {
 	
 	static function overviewbutton($buttons) {
 		$buttons[] = array(
-									'XSRFTag' => 'zpgithub',
-									'category'=>gettext('Cache'),
-									'enable'=>true,
-									'button_text'=>gettext('Clear GitHub cache'),
-									'formname'=>'zpgithub_button',
-									'action'=>WEBPATH.'/'.USER_PLUGIN_FOLDER.'/zp_github.php?action=clear_zpgithub_cache',
-									'icon'=>'images/cache.png',
-									'alt'=> gettext('Deletes the GitHub data cached by the zp_github plugin in the database.'),
-									'hidden'=>'',
-									'rights'=>ADMIN_RIGHTS,
-									'title'=> gettext('Deletes the GitHub data cached by the zp_github plugin in the database.')
-									);
+						'XSRFTag'			 => 'zp_github',
+						'category'		 => gettext('Cache'),
+						'enable'			 => true,
+						'button_text'	 => gettext('Purge zp_github cache'),
+						'formname'		 => 'clear_zpgithub_cache.php',
+						'action'			 => WEBPATH.'/'.USER_PLUGIN_FOLDER . '/zp_github.php?action=clear_zpgithub_cache',
+						'icon'				 => 'images/edit-delete.png',
+						'alt'					 => '',
+						'title'				 => gettext('Resets the zp_github database cache'),
+						'hidden'			 => '<input type="hidden" name="action" value="clear_zpgithub_cache" />',
+						'rights'			 => ADMIN_RIGHTS
+		);
 		return $buttons;
 	}
 
