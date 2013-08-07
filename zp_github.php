@@ -8,23 +8,33 @@
  * 
  * Requirements: PHP 5.3+, cURL and JSON PHP server extensions.
  * 
- * Usage:
- * Class methods: 
+ * Usage way:
+ * a) Class : 
  * $obj = new zpGitHub('<username>');
- * echo $obj->getReposListHTML(); // prints a html list of all repos of the user <username>
- * $data = $obj->fetchData($url); // Gets array info of any GitHub api url. See http://developer.github.com/v3/ for details
+ * echo $obj->getReposListHTML(); 
+ * Prints a html list of all repos of the user <username>
+ *
+ * $data = $obj->fetchData($url); //
+ * Gets array info of any GitHub api url. See http://developer.github.com/v3/ for details
  * 
- * Template function: echo getGitHub_repos($user,$exclude); // prints a html list of all repos of the user <username>
- * Content macro: [GITHUBREPOS <username> <exclude>]
- * Prints a html of the GitHub user <username> (like  echo $obj->getReposListHTML() above would do)
+ * b) Template functions: 
+ * echo getGitHub_repos('<username>',$showtags,$showbranches,$exclude);
+ * Prints a html list of all repos of the user <username> (like echo $obj->getReposListHTML() above would do)
  * <exclude> is optionally an array to exclude specific repos, e.g. array("repo1","repo2")
  *
- * Template function: echo getGitHub_raw($url);
- * Content macro: [GITHUBRAW <url>]
+ * echo getGitHub_raw($url);
  * Prints the raw file content of the file referenced and a link to the single file page.
  * <url> is the url to a GitHub single file page like:
  * https://github.com/zenphoto/DevTools/blob/master/demo_plugin-and-theme/demo_plugin/zenphoto_demoplugin.php
  *
+ * c) Content macros: 
+ * [GITHUBREPOS <username> <reponame> <releases> <branches>]
+ * [GITHUBREPO <username> <reponame> <releases> <branches>]
+ * [GITHUBRAW <url>]
+ * The macros work the same as the template functions on b).
+ * 
+ * Please the the comments on each method and functionbelow for more details on the parameters and usages.
+ * 
  * @license GPL v3 
  * @author Malte Müller (acrylian)
  *
@@ -347,7 +357,7 @@ class zpGitHub {
 					'owner'=>'zp_github',
 					'desc'=>gettext('The GitHub user to print the repos in a nested html list from the user (%1). Optionally array of the names of repos to exclude from the list (%2), show tagged release downloads (%3) and the branches (%4).')
 				);
-				$macros['GITHUBREPO'] = array(
+		$macros['GITHUBREPO'] = array(
 					'class'=>'function',
 					'params'=> array('string','string','bool*','bool*'), 
 					'value'=>'getGitHub_repo',
@@ -383,7 +393,9 @@ class zpGitHub {
 
 } // class end
 
-/* Theme functions */
+/* Theme functions 
+* Some wrapper functions to be used to echo results on themes directly
+*/
 
  /*
 	* Get the repo info as a nested html list to print via macro
