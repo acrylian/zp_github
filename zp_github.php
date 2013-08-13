@@ -266,11 +266,14 @@ class zpGitHub {
 	* Example function to get HTML of a list of all repos of a user that can be echoed (so it is usable as a macro later on as well)
 	* @param array $repos The repos as returned by getRepos()
 	* @param array $exclude array with repo names to exclude from the list (Example: array('repo1','repo2'))
+	* @param bool $showname True or false to show the repo name
+	* @param bool $showdesc True or false to show the short description
+	* @param bool $showmeta True or false to show meta info like last update, language and open issues
 	* @param bool $showtags True or false to show links to the tagged releases
 	* @param bool $showbranches True or false to show links the branches
 	* return string
 	*/
-	function getReposListHTML($repos,$exclude='',$showtags,$showbranches) {
+	function getReposListHTML($repos,$exclude='',$showname,$showdesc,$showmeta,$showtags,$showbranches) {
 		if(!is_array($repos)) {
 			return false;
 		}
@@ -284,7 +287,7 @@ class zpGitHub {
 		$html = '<ol class="githubrepos">';
 		foreach($repos as $repo) {
 			if(!in_array($repo['name'],$exclude)) {
-				$html .= '<li>'.$this->getRepoHTML($repo,$showtags,$showbranches).'</li>';
+				$html .= '<li>'.$this->getRepoHTML($repo,$showname,$showdesc,$showmeta,$showtags,$showbranches).'</li>';
 			}
 		}
 		$html .= '</ol>';
@@ -294,24 +297,33 @@ class zpGitHub {
 	/*
 	* Example function to get HTML for one repo that can be echoed (so it is usable as a macro later on as well)
 	* @param array $repo Array of a repo as fetched by getRepo().
+	* @param bool $showname True or false to show the repo name
+	* @param bool $showdesc True or false to show the short description
+	* @param bool $showmeta True or false to show meta info like last update, language and open issues
 	* @param bool $showtags True or false to show links to the tagged releases
 	* @param bool $showbranches True or false to show links the branches
 	* return string
 	*/
-	function getRepoHTML($repo,$showtags=true,$showbranches=true) {
+	function getRepoHTML($repo,$showname=true,$showdesc=true,$showmeta=true,$showtags=true,$showbranches=true) {
 		$html = '';
 		if(!is_array($repo)) {
 			return gettext('No valid data submitted.');
 		}
 		$tags = array();
 		$branches = array();
-		$html .= '<h3 class="repoheadline"><a href="'.$repo['html_url'].'">'.$repo['name'].'</a></h3>';
-		$html .= '<p class="repodesc">'.$repo['description'].'</p>';
-		$issues = $repo['open_issues'];
-		if($issues != 0) {
-			$issues = '<a href="http://github.com/'.$this->user.'/'.$repo['name'].'/issues?state=open">'.$issues.'</a>';
-		} 
-		$html .= '<p class="repometadata">'.gettext('Last update: ').$repo['updated_at'].' | '.gettext('Language: ').$repo['language'].' | '.gettext('Open issues: ').$issues.'</p>';
+		if($showname) {
+			$html .= '<h3 class="repoheadline"><a href="'.$repo['html_url'].'">'.$repo['name'].'</a></h3>';
+		}
+		if($showdesc) {
+			$html .= '<p class="repodesc">'.$repo['description'].'</p>';
+		}
+		if($showmeta) {
+			$issues = $repo['open_issues'];
+			if($issues != 0) {
+				$issues = '<a href="http://github.com/'.$this->user.'/'.$repo['name'].'/issues?state=open">'.$issues.'</a>';
+			} 
+			$html .= '<p class="repometadata">'.gettext('Last update: ').$repo['updated_at'].' | '.gettext('Language: ').$repo['language'].' | '.gettext('Open issues: ').$issues.'</p>';
+		}
 		if($showtags) {
 			$tags = $this->getRepoExtraData($repo['name'],'tags');		
 			if(is_array($tags) && !array_key_exists('message',$tags)) { // catch error message from GitHub
@@ -352,17 +364,17 @@ class zpGitHub {
 	static function zpgithub_macro($macros) {
 		$macros['GITHUBREPOS'] = array(
 					'class'=>'function',
-					'params'=> array('string','bool*','bool*','array*'), 
+					'params'=> array('string','bool*','bool*','bool*','bool*','bool*','array*'), 
 					'value'=>'getGitHub_repos',
 					'owner'=>'zp_github',
-					'desc'=>gettext('The GitHub user to print the repos in a nested html list from the user (%1). Optionally array of the names of repos to exclude from the list (%2), show tagged release downloads (%3) and the branches (%4).')
+					'desc'=>gettext('The GitHub user to print the repos in a nested html list (%1). Optionally true or false to show name (%2), description (%3), meta info (%4), tagged release downloads (%5) and the branches (%6) and array of the names of repos to exclude from the list (%7). The macro will print html formatted data of the repo.')
 				);
 		$macros['GITHUBREPO'] = array(
 					'class'=>'function',
-					'params'=> array('string','string','bool*','bool*'), 
+					'params'=> array('string','string','bool*','bool*','bool*','bool*','bool*'), 
 					'value'=>'getGitHub_repo',
 					'owner'=>'zp_github',
-					'desc'=>gettext('The GitHub user (%1) and the repo name to get (%2). Optionally true/false to show tagged release downloads (%3) and the branches (%4). The macro will print html formatted data of the repo.')
+					'desc'=>gettext('The GitHub user (%1) and the repo name to get (%2). Optionally true/false to show name (%3), description (%4), meta info (%5), tagged release downloads (%6) and the branches (%7). The macro will print html formatted data of the repo.')
 				);
 		$macros['GITHUBRAW'] = array(
 					'class'=>'function',
@@ -400,15 +412,18 @@ class zpGitHub {
  /*
 	* Get the repo info as a nested html list to print via macro
 	* @param string $user GitHub user name
+	* @param bool $showname True or false to show the repo name
+	* @param bool $showdesc True or false to show the short description
+	* @param bool $showmeta True or false to show meta info like last update, language and open issues
 	* @param bool $showtags True or false to show links to the tagged releases
 	* @param bool $showbranches True or false to show links the branches
 	* @param array $exclude array of repo names to exclude
 	* return string
 	*/
-	function getGitHub_repos($user,$showtags,$showbranches,$exclude) {
+	function getGitHub_repos($user,$showname=true,$showdesc=true,$showmeta=true,$showtags=true,$showbranches=true,$exclude=null) {
 		$obj = new zpGitHub($user);	
 		$repos = $obj->getRepos();
-		$html = $obj->getReposListHTML($repos,$exclude);
+		$html = $obj->getReposListHTML($repos,$exclude,$showname,$showdesc,$showmeta,$showtags,$showbranches);
 		return $html;
 	}
 	
@@ -416,14 +431,17 @@ class zpGitHub {
 	* Get the repo info as a nested html list to print via macro
 	* @param string $user GitHub user name
 	* @param string $repo name of the repo to get
+	* @param bool $showname True or false to show the repo name
+	* @param bool $showdesc True or false to show the short description
+	* @param bool $showmeta True or false to show meta info like last update, language and open issues
 	* @param bool $showtags True or false to show links to the tagged releases
 	* @param bool $showbranches True or false to show links the branches
 	* return string
 	*/
-	function getGitHub_repo($user,$repo,$showtags,$showbranches) {
+	function getGitHub_repo($user,$repo,$showname,$showdesc,$showmeta,$showtags,$showbranches) {
 		$obj = new zpGitHub($user);	
 		$repo = $obj->getRepo($repo);
-		$html = $obj->getRepoHTML($repo,$showtags,$showbranches);
+		$html = $obj->getRepoHTML($repo,$showname,$showdesc,$showmeta,$showtags,$showbranches);
 		return $html;
 	}
 	
