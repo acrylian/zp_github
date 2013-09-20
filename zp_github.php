@@ -226,13 +226,18 @@ class zpGitHub {
 	}
 	
 	/* 
-	* Gets the data of one repo of the user, internally uses getRepos() to get all so additional repos are available as well.
+	* Gets the data of one repo of the user, internally uses getRepos() so we always use the same base data stored once.
 	* @param string $repo the pure name of the repo
 	* return array
 	*/
 	function getRepo($repo) {
-		$url = $this->repos_baseurl.'/'.$this->user.'/'.$repo;
-	  $array = $this->fetchData($url);
+		$repos = $this->getRepos();
+		$array = '';
+		foreach($repos as $r) {
+			if($r['name'] == $repo) {
+				$array = $r;	
+			}
+		}
 	  return $array;
 	}
 	/*
@@ -438,10 +443,10 @@ class zpGitHub {
 	* @param bool $showbranches True or false to show links the branches
 	* return string
 	*/
-	function getGitHub_repo($user,$repo,$showname,$showdesc,$showmeta,$showtags,$showbranches) {
+	function getGitHub_repo($user,$repo,$showname=true,$showdesc=true,$showmeta=true,$showtags=true,$showbranches=true) {
 		$obj = new zpGitHub($user);	
 		$repo = $obj->getRepo($repo);
-		$html = $obj->getRepoHTML($repo,$showname,$showdesc,$showmeta,$showtags,$showbranches);
+		$html = $obj->getRepoHTML($repo,$showname,$showdesc,$showmeta,$showtags,$showbranches);	
 		return $html;
 	}
 	
