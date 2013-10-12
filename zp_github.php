@@ -67,7 +67,7 @@ $plugin_author = 'Malte Müller (acrylian)';
 $plugin_version = '1.0';
 $option_interface = 'zpgithubOptions';
 
-zp_register_filter('content_macro','zpGitHub::zpgithub_macro');
+zp_register_filter('content_macro','zpGitHubMacros::zpgithub_macro');
 zp_register_filter('admin_utilities_buttons', 'zpGitHub::overviewbutton');
 
 class zpgithubOptions {
@@ -95,7 +95,7 @@ class zpGitHub {
 	public $today = '';
 	public $cache_expire = '';
 	
-	function __construct($user) {
+	public function __construct($user) {
 		$this->user = $user;
 		$this->today = time();
 		$this->cache_expire = getOption('zpgithub_cache_expire');
@@ -108,6 +108,8 @@ class zpGitHub {
 		}
 		$this->user_basedata = $this->getUserBaseData();
 	}
+	
+	
 	/*
 	* Gets the requested repo data either via cURL http request or from the database cache
 	* @param string $url an GitHub api v3 url, e.g. a user like 
@@ -327,19 +329,20 @@ class zpGitHub {
 			if($issues != 0) {
 				$issues = '<a href="http://github.com/'.$this->user.'/'.$repo['name'].'/issues?state=open">'.$issues.'</a>';
 			} 
-			$html .= '<p class="repometadata">'.gettext('Last update: ').$repo['updated_at'].' | '.gettext('Language: ').$repo['language'].' | '.gettext('Open issues: ').$issues.'</p>';
+			$html .= '<p class="repometadata"><span class="lastupdate">'.gettext('Last update: ').$repo['updated_at'].'</span> | <span class="language">'.gettext('Language: ').$repo['language'].'</span> | <span class="openissues">'.gettext('Open issues: ').$issues.'</span></p>';
 		}
 		if($showtags) {
-			$tags = $this->getRepoExtraData($repo['name'],'tags');		
+			$tags = $this->getRepoExtraData($repo['name'],'tags');	
+			$html .= '<h4 class="repotags">'.gettext('Release downloads').'</h4>';
 			if(is_array($tags) && !array_key_exists('message',$tags)) { // catch error message from GitHub
 				$html .= '<h4 class="repotags">'.gettext('Releases').'</h4>';
 				$html .= '<ul class="repotags">';
 				foreach($tags as $tag) {
-					$html .= '<li>'.$tag['name'].': <a href="'.$tag['zipball_url'].'">zip</a> | <a href="'.$tag['tarball_url'].'">tar</a></li>';
+					$html .= '<li>'.$tag['name'].': <a class="zipdownload" href="'.$tag['zipball_url'].'">zip</a> | <a class="tardownload" href="'.$tag['tarball_url'].'">tar</a></li>';
 				}
 				$html .= '</ul>';
 			} else {
-				$html .= '<p>'.$tags['message'].'</p>';
+				$html .= '<p>'.gettext('Not available.').'</p>';
 			}
 		}
 		if($showbranches) {
@@ -361,36 +364,52 @@ class zpGitHub {
 		return $html;
 	}
 	
- /*
-	* GitHub macro definition
-	* @param array $macros
-	* return array
+	/*
+	* Method to create articles for each tagged release with the zip/tar lings and 
+	* the repo short description preceeded by $releasetext as content. 
+	* It also creates and assigns a category with the name of the repo.
+	* Both the articles and the categories are created unpublished for further editing.
+	* As soon as the GitHub releases api is completely available more options will be added.
+	* 
+	* This will be reachable via an admin overview utility
+	*
+	* @param string $releasetext Text added to the repo short description within the article content
 	*/
-	static function zpgithub_macro($macros) {
-		$macros['GITHUBREPOS'] = array(
-					'class'=>'function',
-					'params'=> array('string','bool*','bool*','bool*','bool*','bool*','array*'), 
-					'value'=>'getGitHub_repos',
-					'owner'=>'zp_github',
-					'desc'=>gettext('The GitHub user to print the repos in a nested html list (%1). Optionally true or false to show name (%2), description (%3), meta info (%4), tagged release downloads (%5) and the branches (%6) and array of the names of repos to exclude from the list (%7). The macro will print html formatted data of the repo.')
-				);
-		$macros['GITHUBREPO'] = array(
-					'class'=>'function',
-					'params'=> array('string','string','bool*','bool*','bool*','bool*','bool*'), 
-					'value'=>'getGitHub_repo',
-					'owner'=>'zp_github',
-					'desc'=>gettext('The GitHub user (%1) and the repo name to get (%2). Optionally true/false to show name (%3), description (%4), meta info (%5), tagged release downloads (%6) and the branches (%7). The macro will print html formatted data of the repo.')
-				);
-		$macros['GITHUBRAW'] = array(
-					'class'=>'function',
-					'params'=> array('string'), 
-					'value'=>'getGitHub_raw',
-					'owner'=>'zp_github',
-					'desc'=>gettext('Enter the url to a single file page on a GitHub repo (%1) and the macro returns the raw file contents wrappred pre element code and a link to the the single file page.')
-				);
-		return $macros;
+	function createRepoReleaseArticles($releasetext='New version: ') {
+		global $_zp_zenpage;
+		$date = date('Y-m-d H:i:s');
+		$repos = $this->getRepos();
+		if(is_array($repos)) {
+			foreach ($repos as $repo) {
+				//create own category for this repo
+				$titlelink = $repo['name'];
+				$sql = 'SELECT `id` FROM '.prefix('news_categories').' WHERE `titlelink`='.db_quote($titlelink);
+				$rslt = query_single_row($sql,false);
+				if (!$rslt) {
+					$cat = new ZenpageCategory($titlelink, true);
+					$cat->setPermalink(1);
+					$cat->set('title',$titlelink);
+					$cat->setShow(0);
+					$cat->save();
+				}
+				$tags = $this->getRepoExtraData($repo['name'],'tags');
+				if(is_array($tags)) {
+					foreach($tags as $tag) {
+						$titlelink = sanitize($tag['name']);
+						$article = new ZenpageNews($titlelink, true);
+						$article->setTitle($titlelink);
+						$content = $releasetext.'<p>'.$repo['description'].'</p><p><a href="'.$tag['zipball_url'].'">zip</a> | <a href="'.$tag['tarball_url'].'">tar</a></p>';
+						$article->setContent($content);
+						$article->setShow(0);
+						$article->setDateTime($date);
+						$article->setCategories(array($repo['name']));
+						$article->save();
+					}
+				}
+			}
+		}
 	}
-	
+		
 	static function overviewbutton($buttons) {
 		$buttons[] = array(
 						'XSRFTag'			 => 'zp_github',
@@ -410,6 +429,93 @@ class zpGitHub {
 
 } // class end
 
+// Actually just a collector class of static methods… 
+class zpGitHubMacros extends zpGitHub {
+	
+	/*
+	* Get the repo info as a nested html list to print via macro or theme function
+	* @param string $user GitHub user name
+	* @param bool $showname True or false to show the repo name
+	* @param bool $showdesc True or false to show the short description
+	* @param bool $showmeta True or false to show meta info like last update, language and open issues
+	* @param bool $showtags True or false to show links to the tagged releases
+	* @param bool $showbranches True or false to show links the branches
+	* @param array $exclude array of repo names to exclude
+	* return string
+	*/
+	static function getGitHub_repos($user,$showname=true,$showdesc=true,$showmeta=true,$showtags=true,$showbranches=true,$exclude=null) {
+		$obj = new zpGitHub($user);	
+		$repos = $obj->getRepos();
+		$html = $obj->getReposListHTML($repos,$exclude,$showname,$showdesc,$showmeta,$showtags,$showbranches);
+		return $html;
+	}
+	
+	 /*
+	* Get the repo info as a nested html list to print via macro or theme function
+	* @param string $user GitHub user name
+	* @param string $repo name of the repo to get
+	* @param bool $showname True or false to show the repo name
+	* @param bool $showdesc True or false to show the short description
+	* @param bool $showmeta True or false to show meta info like last update, language and open issues
+	* @param bool $showtags True or false to show links to the tagged releases
+	* @param bool $showbranches True or false to show links the branches
+	* return string
+	*/
+	static function getGitHub_repo($user,$repo,$showname=true,$showdesc=true,$showmeta=true,$showtags=true,$showbranches=true) {
+		$obj = new zpGitHub($user);	
+		$repo = $obj->getRepo($repo);
+		$html = $obj->getRepoHTML($repo,$showname,$showdesc,$showmeta,$showtags,$showbranches);	
+		return $html;
+	}
+	
+	/*
+	* Get raw file of a GitHub stored single file ready made with html markup for printing on a page
+	* @param string $url Url to the single file page ("blob"), e.g. https://github.com/zenphoto/DevTools/blob/master/demo_plugin-and-theme/demo_plugin/zenphoto_demoplugin.php
+	* return string
+	*/
+	static function getGitHub_raw($url) {
+		$html = ''; 
+		// get user name from the url itself to save a parameter
+		$explode = explode('/',$url); 
+		$user = $explode[3];
+		$obj = new zpGitHub($user);	
+		$rawfile = $obj->getRawFile($url);
+		$html = $obj->getRawFileHTML($rawfile,$url);
+		return $html;
+	} 
+	
+	/*
+	* GitHub macro definition
+	* @param array $macros
+	* return array
+	*/
+	static function zpgithub_macro($macros) {
+		$macros['GITHUBREPOS'] = array(
+					'class'=>'function',
+					'params'=> array('string','bool*','bool*','bool*','bool*','bool*','array*'), 
+					'value'=>'zpGitHubMacros::getGitHub_repos',
+					'owner'=>'zp_github',
+					'desc'=>gettext('The GitHub user to print the repos in a nested html list (%1). Optionally true or false to show name (%2), description (%3), meta info (%4), tagged release downloads (%5) and the branches (%6) and array of the names of repos to exclude from the list (%7). The macro will print html formatted data of the repo.')
+				);
+		$macros['GITHUBREPO'] = array(
+					'class'=>'function',
+					'params'=> array('string','string','bool*','bool*','bool*','bool*','bool*'), 
+					'value'=>'zpGitHubMacros::getGitHub_repo',
+					'owner'=>'zp_github',
+					'desc'=>gettext('The GitHub user (%1) and the repo name to get (%2). Optionally true/false to show name (%3), description (%4), meta info (%5), tagged release downloads (%6) and the branches (%7). The macro will print html formatted data of the repo.')
+				);
+		$macros['GITHUBRAW'] = array(
+					'class'=>'function',
+					'params'=> array('string'), 
+					'value'=>'zpGitHubMacros::getGitHub_raw',
+					'owner'=>'zp_github',
+					'desc'=>gettext('Enter the url to a single file page on a GitHub repo (%1) and the macro returns the raw file contents wrappred pre element code and a link to the the single file page.')
+				);
+		return $macros;
+	}
+
+}
+
 /* Theme functions 
 * Some wrapper functions to be used to echo results on themes directly
 */
@@ -426,9 +532,7 @@ class zpGitHub {
 	* return string
 	*/
 	function getGitHub_repos($user,$showname=true,$showdesc=true,$showmeta=true,$showtags=true,$showbranches=true,$exclude=null) {
-		$obj = new zpGitHub($user);	
-		$repos = $obj->getRepos();
-		$html = $obj->getReposListHTML($repos,$exclude,$showname,$showdesc,$showmeta,$showtags,$showbranches);
+		$html = zpGitHubMacros::getGitHub_repos($user,$showname,$showdesc,$showmeta,$showtags,$showbranches,$exclude);	
 		return $html;
 	}
 	
@@ -444,9 +548,7 @@ class zpGitHub {
 	* return string
 	*/
 	function getGitHub_repo($user,$repo,$showname=true,$showdesc=true,$showmeta=true,$showtags=true,$showbranches=true) {
-		$obj = new zpGitHub($user);	
-		$repo = $obj->getRepo($repo);
-		$html = $obj->getRepoHTML($repo,$showname,$showdesc,$showmeta,$showtags,$showbranches);	
+		$html = zpGitHubMacros::getGitHub_repo($user,$repo,$showname,$showdesc,$showmeta,$showtags,$showbranches);	
 		return $html;
 	}
 	
@@ -456,12 +558,6 @@ class zpGitHub {
 	* return string
 	*/
 	function getGitHub_raw($url) {
-		$html = ''; 
-		// get user name from the url itself to avoid a parameter
-		$explode = explode('/',$url); 
-		$user = $explode[3];
-		$obj = new zpGitHub($user);	
-		$rawfile = $obj->getRawFile($url);
-		$html = $obj->getRawFileHTML($rawfile,$url);
+		$html = zpGitHubMacros::getGitHub_raw($url);
 		return $html;
 	} 
