@@ -117,10 +117,10 @@ class zpGitHub {
 		}
 		$this->user_basedata = $this->getUserBaseData();
 		if(getOption('zpgithub_createpages')) {
-	  	//$this->createRepoPages();
+	  	$this->createRepoPages();
 	  }
 	  if(getOption('zpgithub_createnews')) {
-	  	//$this->createRepoReleaseArticles();
+	  	$this->createRepoReleaseArticles();
 	  }
 	}
 	
