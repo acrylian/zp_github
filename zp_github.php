@@ -67,7 +67,7 @@ $plugin_author = 'Malte Müller (acrylian)';
 $plugin_version = '1.0';
 $option_interface = 'zpgithubOptions';
 
-zp_register_filter('content_macro','zpGitHubMacros::zpgithub_macro');
+zp_register_filter('content_macro','zpGitHub::zpgithub_macro');
 zp_register_filter('admin_utilities_buttons', 'zpGitHub::overviewbutton');
 
 class zpgithubOptions {
