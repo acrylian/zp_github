@@ -213,10 +213,12 @@ class zpGitHub {
 	function getRawFileHTML($rawfile,$url) {
 		$html = '';
 		if($rawfile) {
-			$html .= '<div class="githubraw-link">'."\n";
-			$html .= '<p><a href="'.$url.'" target="_blank">'.gettext('View file on GitHub').'</a></p>'."\n";
+			$html .= '<div class="githubraw">'."\n";
+			$html .= '<p class="githubraw-link"><a href="'.$url.'" target="_blank">'.gettext('View file on GitHub').'</a></p>'."\n";
 			$html .= '<pre class="githubraw-code">'."\n";
+			$html .= '<div class="githubraw-codewrap">'."\n";
 			$html .= html_encode($rawfile);
+			$html .= '</div>'."\n";
 			$html .= '</pre>'."\n";
 			$html .= '</div>'."\n";
 		}
