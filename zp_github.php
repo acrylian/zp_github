@@ -476,11 +476,6 @@ class zpGitHub {
 		);
 		return $buttons;
 	}
-
-} // class end
-
-// Actually just a collector class of static methods… 
-class zpGitHubMacros extends zpGitHub {
 	
 	/*
 	* Get the repo info as a nested html list to print via macro or theme function
@@ -494,8 +489,8 @@ class zpGitHubMacros extends zpGitHub {
 	* @param bool $repolink True or false to show a link to the repo (in case you don't show the linked title)
 	* return string
 	*/
-	static function getGitHub_repos($user,$showname=true,$showdesc=true,$showmeta=true,$showtags=true,$showbranches=true,$exclude=null,$repolink=false) {
-		$obj = new zpGitHub($user);	
+	public static function getGitHub_repos($user,$showname=true,$showdesc=true,$showmeta=true,$showtags=true,$showbranches=true,$exclude=null,$repolink=false) {
+		$obj = new self($user);	
 		$repos = $obj->getRepos();
 		$html = $obj->getReposListHTML($repos,$exclude,$showname,$showdesc,$showmeta,$showtags,$showbranches,$repolink);
 		return $html;
@@ -513,8 +508,8 @@ class zpGitHubMacros extends zpGitHub {
 	* @param bool $repolink True or false (default) to show a link to the repo (in case you don't show the linked title)
 	* return string
 	*/
-	static function getGitHub_repo($user,$repo,$showname=true,$showdesc=true,$showmeta=true,$showtags=true,$showbranches=true,$repolink=false) {
-		$obj = new zpGitHub($user);	
+	public static function getGitHub_repo($user,$repo,$showname=true,$showdesc=true,$showmeta=true,$showtags=true,$showbranches=true,$repolink=false) {
+		$obj = new self($user);	
 		$repo = $obj->getRepo($repo);
 		$html = $obj->getRepoHTML($repo,$showname,$showdesc,$showmeta,$showtags,$showbranches,$repolink);	
 		return $html;
@@ -525,12 +520,12 @@ class zpGitHubMacros extends zpGitHub {
 	* @param string $url Url to the single file page ("blob"), e.g. https://github.com/zenphoto/DevTools/blob/master/demo_plugin-and-theme/demo_plugin/zenphoto_demoplugin.php
 	* return string
 	*/
-	static function getGitHub_raw($url) {
+	public static function getGitHub_raw($url) {
 		$html = ''; 
 		// get user name from the url itself to save a parameter
 		$explode = explode('/',$url); 
 		$user = $explode[3];
-		$obj = new zpGitHub($user);	
+		$obj = new self($user);	
 		$rawfile = $obj->getRawFile($url);
 		$html = $obj->getRawFileHTML($rawfile,$url);
 		return $html;
@@ -545,28 +540,29 @@ class zpGitHubMacros extends zpGitHub {
 		$macros['GITHUBREPOS'] = array(
 					'class'=>'function',
 					'params'=> array('string','bool*','bool*','bool*','bool*','bool*','array*'), 
-					'value'=>'zpGitHubMacros::getGitHub_repos',
+					'value'=>'zpGitHub::getGitHub_repos',
 					'owner'=>'zp_github',
 					'desc'=>gettext('The GitHub user to print the repos in a nested html list (%1). Optionally true or false to show name (%2), description (%3), meta info (%4), tagged release downloads (%5) and the branches (%6) and array of the names of repos to exclude from the list (%7). The macro will print html formatted data of the repo.')
 				);
 		$macros['GITHUBREPO'] = array(
 					'class'=>'function',
 					'params'=> array('string','string','bool*','bool*','bool*','bool*','bool*'), 
-					'value'=>'zpGitHubMacros::getGitHub_repo',
+					'value'=>'zpGitHub::getGitHub_repo',
 					'owner'=>'zp_github',
 					'desc'=>gettext('The GitHub user (%1) and the repo name to get (%2). Optionally true/false to show name (%3), description (%4), meta info (%5), tagged release downloads (%6) and the branches (%7). The macro will print html formatted data of the repo.')
 				);
 		$macros['GITHUBRAW'] = array(
 					'class'=>'function',
 					'params'=> array('string'), 
-					'value'=>'zpGitHubMacros::getGitHub_raw',
+					'value'=>'zpGitHub::getGitHub_raw',
 					'owner'=>'zp_github',
 					'desc'=>gettext('Enter the url to a single file page on a GitHub repo (%1) and the macro returns the raw file contents wrappred pre element code and a link to the the single file page.')
 				);
 		return $macros;
 	}
 
-}
+} // class end
+
 
 /* Theme functions 
 * Some wrapper functions to be used to echo results on themes directly
@@ -584,7 +580,7 @@ class zpGitHubMacros extends zpGitHub {
 	* return string
 	*/
 	function getGitHub_repos($user,$showname=true,$showdesc=true,$showmeta=true,$showtags=true,$showbranches=true,$exclude=null) {
-		$html = zpGitHubMacros::getGitHub_repos($user,$showname,$showdesc,$showmeta,$showtags,$showbranches,$exclude);	
+		$html = zpGitHub::getGitHub_repos($user,$showname,$showdesc,$showmeta,$showtags,$showbranches,$exclude);	
 		return $html;
 	}
 	
@@ -600,7 +596,7 @@ class zpGitHubMacros extends zpGitHub {
 	* return string
 	*/
 	function getGitHub_repo($user,$repo,$showname=true,$showdesc=true,$showmeta=true,$showtags=true,$showbranches=true) {
-		$html = zpGitHubMacros::getGitHub_repo($user,$repo,$showname,$showdesc,$showmeta,$showtags,$showbranches);	
+		$html = zpGitHub::getGitHub_repo($user,$repo,$showname,$showdesc,$showmeta,$showtags,$showbranches);	
 		return $html;
 	}
 	
@@ -610,6 +606,6 @@ class zpGitHubMacros extends zpGitHub {
 	* return string
 	*/
 	function getGitHub_raw($url) {
-		$html = zpGitHubMacros::getGitHub_raw($url);
+		$html = zpGitHub::getGitHub_raw($url);
 		return $html;
 	} 
