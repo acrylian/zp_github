@@ -39,7 +39,7 @@
  * @author Malte Müller (acrylian)
  *
  * @package plugins
- * @subpackage misc
+ * @subpackage tools
  */
  /** clear cache  ********************************************************** */
 /* * ***************************************************************************** */
