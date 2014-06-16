@@ -24,7 +24,7 @@ $obj = new zpGitHub('<username>');
 echo $obj->getReposListHTML(); 
 ```
 
-Prints a html list of all repos of the user <username>
+Prints a html list of all repos of the user `<username>`
 
 ```php 
 $data = $obj->fetchData($url); 
@@ -33,16 +33,20 @@ $data = $obj->fetchData($url);
 Gets array info of any GitHub api url. See http://developer.github.com/v3/ for details
   
 ###b) Template functions: 
+
+```php
 echo getGitHub_repos('<username>',$showtags,$showbranches,$exclude);
-Prints a html list of all repos of the user <username> (like echo $obj->getReposListHTML() above would do)
-<exclude> is optionally an array to exclude specific repos, e.g. array("repo1","repo2")
+```
+
+Prints a html list of all repos of the user `<username>` (like `echo $obj->getReposListHTML()` above would do)
+`<exclude>` is optionally an array to exclude specific repos, e.g. `array("repo1","repo2")`
 
 ```php 
 echo getGitHub_raw($url,$convertMarkdown);
 ```
 
 Prints the raw file content of the file referenced and a link to the single file page.
-<url> is the url to a GitHub single file page like:
+`<url>` is the url to a GitHub single file page like:
 https://github.com/zenphoto/DevTools/blob/master/demo_plugin-and-theme/demo_plugin/zenphoto_demoplugin.php
 You can also have it convert markdown to HTML
  
