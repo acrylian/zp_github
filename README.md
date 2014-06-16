@@ -17,12 +17,12 @@ License: MIT license
   
 Usage ways:
 -----------
-###a) Class : 
+###a) Class: 
 
 ```php
 $obj = new zpGitHub('<username>');
 echo $obj->getReposListHTML(); 
-``
+```
 
 Prints a html list of all repos of the user <username>
 
@@ -48,7 +48,7 @@ You can also have it convert markdown to HTML
  
 ###c) Content macros: 
 
-``
+```
 [GITHUBREPOS <username> <reponame> <releases> <branches>]
 [GITHUBREPO <username> <reponame> <releases> <branches>]
 [GITHUBRAW <url> <convertMarkdown>]
