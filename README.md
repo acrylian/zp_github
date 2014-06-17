@@ -48,7 +48,7 @@ echo getGitHub_raw($url,$convertMarkdown);
 Prints the raw file content of the file referenced and a link to the single file page.
 `<url>` is the url to a GitHub single file page like:
 https://github.com/zenphoto/DevTools/blob/master/demo_plugin-and-theme/demo_plugin/zenphoto_demoplugin.php
-You can also have it convert markdown to HTML
+The content is html encoded so printed as text. You can use it to convert Markdown formatted files to HTML files.
  
 ###c) Content macros: 
 
@@ -65,6 +65,15 @@ The macros work the same as the template functions on b).
 
 ```php
 $html = zpGitHub::convertMarkdown($markdown);
+```
+
+So if you don't like to use the Zenphoto default text editor TinyMCE you can use it to add Markdown support to Zenphoto. That requires some theme modifications though. You would have to use above method with the plain text field contents. Her e an example of the album description:
+
+```php
+echo zpGitHub::convertMarkdown(getAlbumDesc()); //Album description
+echo zpGitHub::convertMarkdown(getImageDesc()); //Image description
+echo zpGitHub::convertMarkdown(getPageContent()); //Zenpage page content
+echo zpGitHub::convertMarkdown(getNewsContent()); //Zenpage news article content
 ```
 
 Please also see the file comments on each method and function below for more details on the parameters and usages.
