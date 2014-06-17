@@ -25,7 +25,7 @@
  * Gets array info of any GitHub api url. See http://developer.github.com/v3/ for details
  * 
  * b) Template functions: 
- * echo getGitHub_repos('<username>',$showtags,$showbranches,$exclude);
+ * echo getGitHub_repos('<username>',$showreleases,$showbranches,$exclude);
  * Prints a html list of all repos of the user <username> (like echo $obj->getReposListHTML() above would do)
  * <exclude> is optionally an array to exclude specific repos, e.g. array("repo1","repo2")
  *
@@ -65,7 +65,6 @@ if (!defined('OFFSET_PATH')) {
       exitZP();
     }
     if ($action == 'clear_zpgithub_cache') {
-      zp_session_start();
       XSRFdefender('zp_github');
       $action = sanitize($action);
       query("DELETE FROM " . prefix('plugin_storage') . " WHERE `type` = 'zpgithub'");
@@ -216,7 +215,7 @@ class zpGitHub {
     $file = '';
     $db = query_single_row("SELECT `data` FROM " . prefix('plugin_storage') . " WHERE `type` = 'zpgithub' AND `aux` = " . db_quote($url));
     $rawurl = str_replace('/blob/', '/', $url);
-    $rawurl = str_replace('https://github.com/', 'https://raw.github.com/', $rawurl);
+    $rawurl = str_replace('https://github.com/', 'https://raw.githubusercontent.com/', $rawurl);
     if ($db) {
       if ($this->today - $this->lastupdate < $this->cache_expire) {
         $file = $db['data'];
@@ -225,14 +224,14 @@ class zpGitHub {
         if ($convertMarkdown) {
           $file = zpGitHub::convertMarkdown($file);
         }
-        $this->updateDBEntry($url, $file);
+        $this->updateDBEntry($url, html_encodeTagged($file));
       }
     } else {
       $file = file_get_contents($rawurl);
       if ($convertMarkdown) {
         $file = zpGitHub::convertMarkdown($file);
       }
-      $this->createDBEntry($url, $file);
+      $this->createDBEntry($url, html_encodeTagged($file));
     }
     return $file;
   }
@@ -299,9 +298,9 @@ class zpGitHub {
   }
 
   /*
-   * Gets the extra data chosen (tags, issues, branches currently) of one repo of the user
+   * Gets the extra data chosen (tags, issues, branches, releases currently) of one repo of the user
    * @param string $repo the pure name of the repo
-   * @param string $type What data to get: issues, tags, branches (limited currently to save unneeded url request)
+   * @param string $type What data to get: issues, tags, branches, releases (limited currently to save unneeded url request)
    * return array
    */
 
@@ -315,6 +314,7 @@ class zpGitHub {
       case 'tags':
       case 'issues':
       case 'branches':
+      case 'releases':
         $url = $this->repos_baseurl . '/' . $this->user . '/' . $repo . '/' . $type;
         break;
     }
@@ -333,12 +333,12 @@ class zpGitHub {
    * @param bool $showname True or false to show the repo name
    * @param bool $showdesc True or false to show the short description
    * @param bool $showmeta True or false to show meta info like last update, language and open issues
-   * @param bool $showtags True or false to show links to the tagged releases
+   * @param bool $showreleases True or false to show links to the tagged releases
    * @param bool $showbranches True or false to show links the branches
    * return string
    */
 
-  function getReposListHTML($repos, $exclude = '', $showname, $showdesc, $showmeta, $showtags, $showbranches) {
+  function getReposListHTML($repos, $exclude = '', $showname, $showdesc, $showmeta, $showreleases, $showbranches) {
     if (!is_array($repos)) {
       return false;
     }
@@ -352,7 +352,7 @@ class zpGitHub {
     $html = '<ol class="githubrepos">';
     foreach ($repos as $repo) {
       if (!in_array($repo['name'], $exclude)) {
-        $html .= '<li>' . $this->getRepoHTML($repo, $showname, $showdesc, $showmeta, $showtags, $showbranches) . '</li>';
+        $html .= '<li>' . $this->getRepoHTML($repo, $showname, $showdesc, $showmeta, $showreleases, $showbranches) . '</li>';
       }
     }
     $html .= '</ol>';
@@ -365,13 +365,13 @@ class zpGitHub {
    * @param bool $showname True or false to show the repo name
    * @param bool $showdesc True or false to show the short description
    * @param bool $showmeta True or false to show meta info like last update, language and open issues
-   * @param bool $showtags True or false to show links to the tagged releases
+   * @param bool $showreleases True or false to show links to the tagged releases
    * @param bool $showbranches True or false to show links the branches
    * @param bool $repolink True or false to show a link to the repo (in case you don't show the linked title)
    * return string
    */
 
-  function getRepoHTML($repo, $showname = true, $showdesc = true, $showmeta = true, $showtags = true, $showbranches = true, $repolink = true) {
+  function getRepoHTML($repo, $showname = true, $showdesc = true, $showmeta = true, $showreleases = true, $showbranches = true, $repolink = true) {
     $html = '';
     if (!is_array($repo)) {
       return gettext('No valid data submitted.');
@@ -393,23 +393,29 @@ class zpGitHub {
       $lastupdate = zpFormattedDate(DATE_FORMAT, strtotime($repo['updated_at']));
       $html .= '<p class="repometadata"><span class="created">' . gettext('Created: ') . $created . '</span> | <span class="lastupdate">' . gettext('Last update: ') . $lastupdate . '</span> | <span class="language">' . gettext('Language: ') . $repo['language'] . '</span> | <span class="openissues">' . gettext('Open issues: ') . $issues . '</span></p>';
     }
-    if ($showtags) {
-      $tags = $this->getRepoExtraData($repo['name'], 'tags');
-      if (is_array($tags) && !array_key_exists('message', $tags)) { // catch error message from GitHub
-        $html .= '<h4 class="repotags">' . gettext('Releases') . '</h4>';
-        $html .= '<ul class="repotags">';
-        foreach ($tags as $tag) {
-          $html .= '<li>' . $tag['name'] . ': <a class="zipdownload" href="' . $tag['zipball_url'] . '">zip</a> | <a class="tardownload" href="' . $tag['tarball_url'] . '">tar</a></li>';
+    if ($showreleases) {
+      $releases = $this->getRepoExtraData($repo['name'], 'releases');
+      if (is_array($releases) && !array_key_exists('message', $releases)) { // catch error message from GitHub
+        $html .= '<h4 class="reporeleases">' . gettext('Releases') . '</h4>';
+        $html .= '<ul class="reporeleases">';
+        foreach ($releases as $release) {
+          $html .= '<li>';
+          $published = zpFormattedDate(DATE_FORMAT, strtotime($release['published_at']));
+          $html .= '<h5>'.$release['tag_name'].' <small>('.$published.')</small></h5>';
+          $releasebody = $release['body']; //release description
+          if(!empty($releasebody)) {
+            $html .= html_encodeTagged($this->convertMarkdown($releasebody));
+          }
+          $html .= '<p><a class="zipdownload" href="' . $release['zipball_url'] . '">zip</a> | <a class="tardownload" href="' . $release['tarball_url'] . '">tar</a></p>';
+          $html .= '</li>';
         }
         $html .= '</ul>';
-      } else {
-        $html .= '<p>' . gettext('No releases yet.') . '</p>';
-      }
+      } 
     }
     if ($showbranches) {
       $branches = $this->getRepoExtraData($repo['name'], 'branches');
       if (is_array($branches) && !array_key_exists('message', $branches)) { // catch error message from GitHub
-        $html .= '<h4 class="repobranches">' . gettext('Support build downloads') . '</h4>';
+        $html .= '<h4 class="repobranches">' . gettext('Branches') . '</h4>';
         $html .= '<ul class="repobranches">';
         foreach ($branches as $branch) {
           $html .= '<li>' . $branch['name'] . ': ';
@@ -423,7 +429,7 @@ class zpGitHub {
       }
     }
     if ($repolink) {
-      $html .= '<p class="forkongithub"><a href="' . $repo['html_url'] . '">' . gettext('Fork on GitHub') . '</a></p>';
+      $html .= '<p class="viewongithub"><a href="' . $repo['html_url'] . '">' . gettext('View on GitHub') . '</a></p>';
     }
     return $html;
   }
@@ -433,9 +439,11 @@ class zpGitHub {
    * The pages are unpublished for further editing.
    * @param bool $useReadme If true uses the README.md (note the cases!) file of the repo and converts Mardown to HTML (default). Otherwise the short description is used.
    * @param bool $update True if the pages' content should  be updated (overwritten!), false if only new pages should be created.
+   * @param bool $addreleases True if the list of releases should be appended
+   * @param bool $repolink True if the repo link should be appended
    */
 
-  function createRepoPages($useReadme = true, $update = false) {
+  function createRepoPages($useReadme = true, $update = false, $addreleases = true,$repolink = true) {
     $repos = $this->getRepos();
     if (is_array($repos)) {
       foreach ($repos as $repo) {
@@ -444,18 +452,40 @@ class zpGitHub {
         if (!$page->loaded || $update) {
           $page->setPermalink(1);
           $page->set('title', $titlelink);
-          $date = str_replace(array('T', 'z'), array(' ', ''), $repo['created_at']);
+          $date = str_replace(array('T', 'Z'), array(' ', ''), $repo['created_at']);
           $page->setDateTime($date);
           if ($useReadme) {
             $rmurl = 'https://github.com/' . $this->user . '/' . $repo['name'] . '/blob/master/README.md';
-            $description = $this->getRawFile($rmurl, true);
-            if (!$description) {
-              $description = html_encode($repo['description']);
+            $html = $this->getRawFile($rmurl, true);
+            if (!$html) {
+              $html = html_encode($repo['description']);
             }
           } else {
-            $description = html_encode($repo['description']);
+            $html = html_encode($repo['description']);
           }
-          $page->setContent($description);
+           if ($repolink) {
+            $html .= '<p class="viewongithub"><a href="' . $repo['html_url'] . '">' . gettext('View on GitHub') . '</a></p>';
+          }
+          if ($addreleases) {
+            $releases = $this->getRepoExtraData($repo['name'], 'releases');
+            if (is_array($releases) && !array_key_exists('message', $releases)) { // catch error message from GitHub
+              $html .= '<h2>' . gettext('Releases') . '</h2>';
+              $html .= '<ul class="reporeleases">';
+              foreach ($releases as $release) {
+                $published = zpFormattedDate(DATE_FORMAT, strtotime($release['published_at']));
+                $html .= '<li>';
+                $html .= '<h3>' . $release['tag_name'] . ' <small>(' . $published . ')</small></h3>';
+                $releasebody = $release['body']; //release description
+                if (!empty($releasebody)) {
+                  $html .= html_encodeTagged($this->convertMarkdown($releasebody));
+                }
+                $html .= '<p><a class="zipdownload" href="' . $release['zipball_url'] . '">zip</a> | <a class="tardownload" href="' . $release['tarball_url'] . '">tar</a></p>';
+                $html .= '</li>';
+              }
+              $html .= '</ul>';
+            }
+          }
+          $page->setContent($html);
           $page->setShow(0);
           $page->save();
         }
@@ -479,7 +509,7 @@ class zpGitHub {
 
   function createRepoReleaseArticles($createcats = false, $update = false) {
     $releasetext = getOption('zpgithub_releasetext');
-    $date = date('Y-m-d H:i:s'); //The release api is not available yet so we can't use the acutal date
+    $date = date('Y-m-d H:i:s'); //The release api is not available yet so we can't use the actual date
     $repos = $this->getRepos();
     if (is_array($repos)) {
       foreach ($repos as $repo) {
@@ -498,17 +528,23 @@ class zpGitHub {
             }
           }
         }
-        $tags = $this->getRepoExtraData($repo['name'], 'tags');
-        if (is_array($tags)) {
-          foreach ($tags as $tag) {
-            $titlelink = sanitize($tag['name']);
+        $releases = $this->getRepoExtraData($repo['name'], 'releases');
+        if (is_array($releases)) {
+          foreach ($releases as $release) {
+            $titlelink = sanitize($release['tag_name']);
             $article = new ZenpageNews($titlelink, false);
             if (!$article->loaded || $update) {
               $article->setTitle($titlelink);
-              $content = '<p>' . html_encode($releasetext) . html_encode(sanitize($repo['description'])) . '</p><p><a href="' . html_encode(sanitize($tag['zipball_url'])) . '">zip</a> | <a href="' . html_encode(sanitize($tag['tarball_url'])) . '">tar</a></p>';
-              $article->setContent($content);
+              $html = '<p>' . html_encode($releasetext) . html_encode(sanitize($repo['description'])) . '</p>';
+              $publishdate =  str_replace(array('T', 'Z'), array(' ', ''), $release['published_at']);
+              $releasebody = $release['body']; //release description
+              if(!empty($releasebody)) {
+                $html .= html_encodeTagged($this->convertMarkdown($releasebody));
+              }
+              $html .= '<p><a href="' . html_encode(sanitize($release['zipball_url'])) . '">zip</a> | <a href="' . html_encode(sanitize($release['tarball_url'])) . '">tar</a></p>';
+              $article->setContent($html);
               $article->setShow(0);
-              $article->setDateTime($date);
+              $article->setDateTime($publishdate);
               if ($createcats) {
                 $article->setCategories(array($repo['name']));
               }
@@ -558,17 +594,17 @@ class zpGitHub {
    * @param bool $showname True or false to show the repo name
    * @param bool $showdesc True or false to show the short description
    * @param bool $showmeta True or false to show meta info like last update, language and open issues
-   * @param bool $showtags True or false to show links to the tagged releases
+   * @param bool $showreleases True or false to show links to the tagged releases
    * @param bool $showbranches True or false to show links the branches
    * @param array $exclude array of repo names to exclude
    * @param bool $repolink True or false to show a link to the repo (in case you don't show the linked title)
    * return string
    */
 
-  public static function getGitHub_repos($user, $showname = true, $showdesc = true, $showmeta = true, $showtags = true, $showbranches = true, $exclude = null, $repolink = false) {
+  public static function getGitHub_repos($user, $showname = true, $showdesc = true, $showmeta = true, $showreleases = true, $showbranches = true, $exclude = null, $repolink = false) {
     $obj = new self($user);
     $repos = $obj->getRepos();
-    $html = $obj->getReposListHTML($repos, $exclude, $showname, $showdesc, $showmeta, $showtags, $showbranches, $repolink);
+    $html = $obj->getReposListHTML($repos, $exclude, $showname, $showdesc, $showmeta, $showreleases, $showbranches, $repolink);
     return $html;
   }
 
@@ -579,16 +615,16 @@ class zpGitHub {
    * @param bool $showname True or false to show the repo name
    * @param bool $showdesc True or false to show the short description
    * @param bool $showmeta True or false to show meta info like last update, language and open issues
-   * @param bool $showtags True or false to show links to the tagged releases
+   * @param bool $showreleases True or false to show links to the tagged releases
    * @param bool $showbranches True or false to show links the branches
    * @param bool $repolink True or false (default) to show a link to the repo (in case you don't show the linked title)
    * return string
    */
 
-  public static function getGitHub_repo($user, $repo, $showname = true, $showdesc = true, $showmeta = true, $showtags = true, $showbranches = true, $repolink = false) {
+  public static function getGitHub_repo($user, $repo, $showname = true, $showdesc = true, $showmeta = true, $showreleases = true, $showbranches = true, $repolink = false) {
     $obj = new self($user);
     $repo = $obj->getRepo($repo);
-    $html = $obj->getRepoHTML($repo, $showname, $showdesc, $showmeta, $showtags, $showbranches, $repolink);
+    $html = $obj->getRepoHTML($repo, $showname, $showdesc, $showmeta, $showreleases, $showbranches, $repolink);
     return $html;
   }
 
@@ -687,13 +723,13 @@ function getGitHub_repos($user, $showname = true, $showdesc = true, $showmeta = 
  * @param bool $showname True or false to show the repo name
  * @param bool $showdesc True or false to show the short description
  * @param bool $showmeta True or false to show meta info like last update, language and open issues
- * @param bool $showtags True or false to show links to the tagged releases
+ * @param bool $showreleases True or false to show links to the tagged releases
  * @param bool $showbranches True or false to show links the branches
  * return string
  */
 
-function getGitHub_repo($user, $repo, $showname = true, $showdesc = true, $showmeta = true, $showtags = true, $showbranches = true) {
-  $html = zpGitHub::getGitHub_repo($user, $repo, $showname, $showdesc, $showmeta, $showtags, $showbranches);
+function getGitHub_repo($user, $repo, $showname = true, $showdesc = true, $showmeta = true, $showreleases = true, $showbranches = true) {
+  $html = zpGitHub::getGitHub_repo($user, $repo, $showname, $showdesc, $showmeta, $showreleases, $showbranches);
   return $html;
 }
 
