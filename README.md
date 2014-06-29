@@ -1,6 +1,6 @@
 zp_github
 =========
-A Zenphoto plugin to read and display some info from a user and its repos on GitHub. Additionally the plugin optionally 
+A [Zenphoto](http://www.zenphoto.org) plugin to read and display some info from a user and its repos on GitHub. Additionally the plugin optionally 
 can create Zenpage pages for each user's repo and Zenpage articles for each repo's releases/tags.
  
 NOTE: The plugin does use unauthenticated access to the GitHub API and is really only meant to show general static info like your repositories on your website and or direct links. It is not meant for advanced actions. Since the access is limited to 60 requests per hour, the plugin caches all request results in the plugin_storgage table 
