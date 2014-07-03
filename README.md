@@ -1,6 +1,6 @@
 zp_github
 =========
-A [Zenphoto](http://www.zenphoto.org) plugin to read and display some info from a user and its repos on GitHub. Additionally the plugin optionally 
+A [Zenphoto](http://www.zenphoto.org) plugin to read and display some info from a user and its repos on GitHub via content macros within text content. Additionally the plugin optionally 
 can create Zenpage pages for each user's repo and Zenpage articles for each repo's releases/tags.
  
 NOTE: The plugin does use unauthenticated access to the GitHub API and is really only meant to show general static info like your repositories on your website and or direct links. It is not meant for advanced actions. Since the access is limited to 60 requests per hour, the plugin caches all request results in the plugin_storgage table 
@@ -15,9 +15,11 @@ It also includes the Parsedown and ParsedownExtra libaries to convert Markdown f
 http://parsedown.org/https://github.com/erusev/parsedown by Emanuil Rusev http://erusev.com, 
 License: MIT license
   
-Usage ways:
+Usage:
 -----------
-###a) Class: 
+###On the theme:
+
+####Class: 
 
 ```php
 $obj = new zpGitHub('<username>');
@@ -32,7 +34,7 @@ $data = $obj->fetchData($url);
 
 Gets array info of any GitHub api url. See http://developer.github.com/v3/ for details
   
-###b) Template functions: 
+####Template functions: 
 
 ```php
 echo getGitHub_repos('<username>',$showtags,$showbranches,$exclude);
@@ -50,7 +52,7 @@ Prints the raw file content of the file referenced and a link to the single file
 https://github.com/zenphoto/DevTools/blob/master/demo_plugin-and-theme/demo_plugin/zenphoto_demoplugin.php
 The content is html encoded so printed as text. You can use it to convert Markdown formatted files to HTML files.
  
-###c) Content macros: 
+###Content macros: 
 
 ```
 [GITHUBREPOS <username> <reponame> <releases> <branches>]
@@ -60,8 +62,17 @@ The content is html encoded so printed as text. You can use it to convert Markdo
 
 The macros work the same as the template functions on b).
   
+###Utility for Zenpage items
+
+The plugin additionally features a backend utility accessible via teh main admin overview page. This can do several things:
+
+- Create a Zenpage page for each of your repos. You can choose what it includes like the readme file as text or a list of releases.
+- Create Zenpage news articles for each release from the repo (it uses the new release API and not the tags API from GitHub so older tags might not be covered). On request the utility also create a news category per repo.
+
   
-###d) Separate markdown conversion
+###Separate markdown conversion
+
+YOu can also use it to convert Mrkdown formatted text.
 
 ```php
 $html = zpGitHub::convertMarkdown($markdown);
@@ -76,7 +87,7 @@ echo zpGitHub::convertMarkdown(getPageContent()); //Zenpage page content
 echo zpGitHub::convertMarkdown(getNewsContent()); //Zenpage news article content
 ```
 
-If the default text editor TinyMCE is enabled there are conflicts as it already adds html and also encodes special chars. If you want to use Markdown to format it is recommend to disable the editor. Here an example with the content of a Zenpage page:
+If the default text editor TinyMCE is enabled there are conflicts as it already adds HTML and also encodes special chars. If you want to use Markdown to format it is recommend to disable the editor. Here an example with the content of a Zenpage page:
 
 ```php
 //First remove all html tags - we allow images though here - and revert htmlspecialchar encoding
@@ -84,6 +95,6 @@ $pagecontent = htmlspecialchars_decode(strip_tags(getPageContent(), '<img>'));
 echo zpGitHub::convertMarkdown($pagecontent);
 ```
 
+This will also not be perfect as ZEnphoto by default does not recognize (invisible) linebreaks (`\n`) entered in text fields.
+
 Please also see the file comments on each method and function below for more details on the parameters and usages.
-
-
