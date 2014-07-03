@@ -67,13 +67,21 @@ The macros work the same as the template functions on b).
 $html = zpGitHub::convertMarkdown($markdown);
 ```
 
-So if you don't like to use the Zenphoto default text editor TinyMCE you can use it to add Markdown support to Zenphoto. That requires some theme modifications though. You would have to use above method with the plain text field contents. Her e an example of the album description:
+So if you don't like to use the Zenphoto default text editor TinyMCE you can use it to add Markdown support to Zenphoto. That requires some theme modifications though. You would have to use above method with the plain text field contents. Here an example of the album description:
 
 ```php
 echo zpGitHub::convertMarkdown(getAlbumDesc()); //Album description
 echo zpGitHub::convertMarkdown(getImageDesc()); //Image description
 echo zpGitHub::convertMarkdown(getPageContent()); //Zenpage page content
 echo zpGitHub::convertMarkdown(getNewsContent()); //Zenpage news article content
+```
+
+If the default text editor TinyMCE is enabled there are conflicts as it already adds html and also encodes special chars. If you want to use Markdown to format it is recommend to disable the editor. Here an example with the content of a Zenpage page:
+
+```php
+//First remove all html tags - we allow images though here - and revert htmlspecialchar encoding
+$pagecontent = htmlspecialchars_decode(strip_tags(getPageContent(), '<img>'));
+echo zpGitHub::convertMarkdown($pagecontent);
 ```
 
 Please also see the file comments on each method and function below for more details on the parameters and usages.
