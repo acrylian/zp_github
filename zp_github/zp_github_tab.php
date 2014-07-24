@@ -6,6 +6,8 @@
  *
  * This plugin is dependent on the css of the gallery_statistics utility plugin!
  *
+ * @author Malte Müller (acrylian) <info@maltem.de>
+ * @license GPL v3 or later
  * @package admin
  */
 define('OFFSET_PATH', 3);
