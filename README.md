@@ -14,9 +14,14 @@ License: GPL v3
 It also includes the Parsedown and ParsedownExtra libaries to convert Markdown formatted text into HTML. It supports GitHub flavoured Markdown.
 http://parsedown.org/https://github.com/erusev/parsedown by Emanuil Rusev http://erusev.com, 
 License: MIT license
+
+## Installation
+
+Put the file `zp_github.php` and the folder of the same name into your `/plugins` folder and enable it.
+
   
-Usage:
------------
+## Usage:
+
 ###On the theme:
 
 ####Class: 
