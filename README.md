@@ -22,9 +22,9 @@ Put the file `zp_github.php` and the folder of the same name into your `/plugins
   
 ## Usage:
 
-###On the theme:
+### On the theme
 
-####Class: 
+#### Class 
 
 ```php
 $obj = new zpGitHub('<username>');
@@ -39,7 +39,7 @@ $data = $obj->fetchData($url);
 
 Gets array info of any GitHub api url. See http://developer.github.com/v3/ for details
   
-####Template functions: 
+#### Template functions 
 
 ```php
 echo getGitHub_repos('<username>',$showtags,$showbranches,$exclude);
@@ -67,7 +67,7 @@ The content is html encoded so printed as text. You can use it to convert Markdo
 
 The macros work the same as the template functions on b).
   
-###Utility for Zenpage items
+### Utility for Zenpage items
 
 The plugin additionally features a backend utility accessible via teh main admin overview page. This can do several things:
 
@@ -75,7 +75,7 @@ The plugin additionally features a backend utility accessible via teh main admin
 - Create Zenpage news articles for each release from the repo (it uses the new release API and not the tags API from GitHub so older tags might not be covered). On request the utility also create a news category per repo.
 
   
-###Separate markdown conversion
+### Separate markdown conversion
 
 YOu can also use it to convert Mrkdown formatted text.
 
