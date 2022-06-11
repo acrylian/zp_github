@@ -44,7 +44,7 @@ if (!defined('OFFSET_PATH')) {
 $plugin_is_filter = 9 | THEME_PLUGIN | ADMIN_PLUGIN;
 $plugin_description = gettext('A plugin to read some public info from a user/organization and its repos on GitHub via GitHub REST API v3. Includes the Parsedown libary to convert Markdown formatted text to HTML.');
 $plugin_author = 'Malte Müller (acrylian)';
-$plugin_version = '2.0';
+$plugin_version = '2.0.1';
 $option_interface = 'zpgithubOptions';
 
 zp_register_filter('content_macro', 'zpGitHub::zpgithub_macro');
@@ -345,7 +345,7 @@ class zpGitHub {
 	 * @param bool $showreleasedesc True or false to show the description of each release if releases are listed
 	 * return string
 	 */
-	function getReposListHTML($repos, $exclude = '', $showname, $showdesc, $showmeta, $showreleases, $showbranches, $showreleasedesc) {
+	function getReposListHTML($repos, $exclude = '', $showname = '', $showdesc = '', $showmeta = '', $showreleases = '', $showbranches = '', $showreleasedesc = '') {
 		if (!is_array($repos)) {
 			return false;
 		}
