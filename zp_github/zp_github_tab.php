@@ -1,10 +1,6 @@
 <?php
 /**
- * Detailed Gallery Statistics
- *
- * This plugin shows statistical graphs and info about your gallery\'s images and albums
- *
- * This plugin is dependent on the css of the gallery_statistics utility plugin!
+ * zp_github info tab
  *
  * @author Malte Müller (acrylian) <info@maltem.de>
  * @license GPL v3 or later

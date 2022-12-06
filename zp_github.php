@@ -44,7 +44,7 @@ if (!defined('OFFSET_PATH')) {
 $plugin_is_filter = 9 | THEME_PLUGIN | ADMIN_PLUGIN;
 $plugin_description = gettext('A plugin to read some public info from a user/organization and its repos on GitHub via GitHub REST API v3. Includes the Parsedown libary to convert Markdown formatted text to HTML.');
 $plugin_author = 'Malte Müller (acrylian)';
-$plugin_version = '2.0.1';
+$plugin_version = '2.1';
 $option_interface = 'zpgithubOptions';
 
 zp_register_filter('content_macro', 'zpGitHub::zpgithub_macro');
@@ -126,6 +126,7 @@ class zpGitHub {
 	public $cache_expire = '';
 
 	public function __construct($user) {
+		global $_zp_db;
 		$this->user = $user;
 		$this->user_allrepos_url = 'https://api.github.com/users/' . $this->user . '/repos';
 		$this->user_repo_baseurl = 'https://api.github.com/repos/' . $this->user;
@@ -133,12 +134,12 @@ class zpGitHub {
 		$this->user_url = $this->user_baseurl . '/' . $this->user;
 		$this->today = time();
 		$this->cache_expire = getOption('zpgithub_cache_expire');
-		$lastupdate = query_single_row("SELECT `data` FROM " . prefix('plugin_storage') . " WHERE `type` = 'zpgithub' AND `aux` = 'lastupdate_" . $this->user . "'");
+		$lastupdate = $_zp_db->querySingleRow("SELECT `data` FROM " . $_zp_db->prefix('plugin_storage') . " WHERE `type` = 'zpgithub' AND `aux` = 'lastupdate_" . $this->user . "'");
 		if ($lastupdate) {
 			$this->lastupdate = $lastupdate['data'];
 		} else {
 			$this->lastupdate = $this->today;
-			$query2 = query("INSERT INTO " . prefix('plugin_storage') . " (`type`,`data`,`aux`) VALUES ('zpgithub'," . $this->today . ",'lastupdate_" . $this->user . "')");
+			$query2 = $_zp_db->query("INSERT INTO " . $_zp_db->prefix('plugin_storage') . " (`type`,`data`,`aux`) VALUES ('zpgithub'," . $this->today . ",'lastupdate_" . $this->user . "')");
 		}
 		$this->user_basedata = $this->getUserBaseData();
 	}
@@ -149,8 +150,9 @@ class zpGitHub {
 	 * return array
 	 */
 	function fetchData($url) {
+		global $_zp_db;
 		$array = array();
-		$db = query_single_row("SELECT `data` FROM " . prefix('plugin_storage') . " WHERE `type` = 'zpgithub' AND `aux` = " . db_quote($url));
+		$db = $_zp_db->querySingleRow("SELECT `data` FROM " . $_zp_db->prefix('plugin_storage') . " WHERE `type` = 'zpgithub' AND `aux` = " . $_zp_db->quote($url));
 		if ($db) {
 			if ($this->today - $this->lastupdate < $this->cache_expire) {
 				$array = unserialize($db['data']);
@@ -177,9 +179,10 @@ class zpGitHub {
 	 * @param string $data The data stored as passed
 	 */
 	private function updateDBEntry($url, $data) {
-		$query = query("UPDATE " . prefix('plugin_storage') . " SET `data` = " . db_quote($data) . " WHERE `type` = 'zpgithub' AND `aux` = " . db_quote($url));
+		global $_zp_db;
+		$query = $_zp_db->query("UPDATE " . $_zp_db->prefix('plugin_storage') . " SET `data` = " . $_zp_db->quote($data) . " WHERE `type` = 'zpgithub' AND `aux` = " . $_zp_db->quote($url));
 		if ($query) {
-			$query2 = query("UPDATE " . prefix('plugin_storage') . " SET `data` = '" . $this->today . "' AND `aux` = 'lastupdate_" . $this->user . "' WHERE `type` = 'zpgithub' AND `aux` = 'lastupdate_" . $this->user . "'");
+			$query2 = $_zp_db->query("UPDATE " . $_zp_db->prefix('plugin_storage') . " SET `data` = '" . $this->today . "' AND `aux` = 'lastupdate_" . $this->user . "' WHERE `type` = 'zpgithub' AND `aux` = 'lastupdate_" . $this->user . "'");
 			if ($query2) {
 				$this->lastupdate = $this->today;
 				return true;
@@ -193,7 +196,8 @@ class zpGitHub {
 	 * @param string $data The data stored as passed
 	 */
 	private function createDBEntry($url, $data) {
-		$query = query("INSERT INTO " . prefix('plugin_storage') . " (`type`,`data`,`aux`) VALUES ('zpgithub'," . db_quote($data) . "," . db_quote($url) . ")");
+		global $_zp_db;
+		$query = $_zp_db->query("INSERT INTO " . $_zp_db->prefix('plugin_storage') . " (`type`,`data`,`aux`) VALUES ('zpgithub'," . $_zp_db->quote($data) . "," . $_zp_db->quote($url) . ")");
 		if ($query) {
 			$this->lastupdate = $this->today;
 			return true;
@@ -223,8 +227,9 @@ class zpGitHub {
 	 * return string
 	 */
 	function getRawFile($url, $convertMarkdown = false) {
+		global $_zp_db;
 		$file = '';
-		$db = query_single_row("SELECT `data` FROM " . prefix('plugin_storage') . " WHERE `type` = 'zpgithub' AND `aux` = " . db_quote($url));
+		$db = $_zp_db->querySingleRow("SELECT `data` FROM " . $_zp_db->prefix('plugin_storage') . " WHERE `type` = 'zpgithub' AND `aux` = " . $_zp_db->quote($url));
 		$rawurl = str_replace('/blob/', '/', $url);
 		$rawurl = str_replace('https://github.com/', 'https://raw.githubusercontent.com/', $rawurl);
 		if ($db) {
@@ -513,6 +518,7 @@ class zpGitHub {
 	 * @param bool $update True if the articles' content should  be updated (overwritten!), false if only new articles and categories should be created.
 	 */
 	function createRepoReleaseArticles($createcats = false, $update = false) {
+		global $_zp_db;
 		$releasetext = getOption('zpgithub_releasetext');
 		$date = date('Y-m-d H:i:s'); //The release api is not available yet so we can't use the actual date
 		$repos = $this->getRepos();
@@ -521,8 +527,8 @@ class zpGitHub {
 				if ($createcats) {
 					//create own category for this repo
 					$titlelink = $repo['name'];
-					$sql = 'SELECT `id` FROM ' . prefix('news_categories') . ' WHERE `titlelink`=' . db_quote($titlelink);
-					$rslt = query_single_row($sql, false);
+					$sql = 'SELECT `id` FROM ' . prefix('news_categories') . ' WHERE `titlelink`=' . $_zp_db->quote($titlelink);
+					$rslt = $_zp_db->querySingleRow($sql, false);
 					if (!$rslt) {
 						$cat = new ZenpageCategory($titlelink, false);
 						if (!$cat->loaded) {
